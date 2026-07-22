@@ -28,8 +28,11 @@ LOGIN_URL = "https://www.mercadolibre.com.mx/l/afiliados-central-de-afiliados"
 
 def main():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
+        # channel="chrome" usa tu Google Chrome real (con permisos de cámara ya
+        # otorgados a nivel de macOS), en vez del Chromium de pruebas de Playwright,
+        # que no tiene permiso de cámara y hace fallar la verificación facial.
+        browser = p.chromium.launch(headless=False, channel="chrome")
+        context = browser.new_context(permissions=["camera"])
         page = context.new_page()
         page.goto(LOGIN_URL)
 

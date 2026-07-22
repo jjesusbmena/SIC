@@ -21,8 +21,8 @@ def main():
     product_url = sys.argv[1] if len(sys.argv) > 1 else None
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(storage_state=str(STORAGE_STATE_PATH))
+        browser = p.chromium.launch(headless=False, channel="chrome")
+        context = browser.new_context(storage_state=str(STORAGE_STATE_PATH), permissions=["camera"])
         page = context.new_page()
         page.goto(GENERATOR_URL, wait_until="networkidle")
 
