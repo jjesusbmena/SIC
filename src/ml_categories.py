@@ -20,14 +20,14 @@ def _normalize(text: str) -> str:
     return text
 
 
-def fetch_categories(site_id: str) -> list[dict]:
-    resp = http_get(f"{API_BASE}/sites/{site_id}/categories")
+def fetch_categories(site_id: str, access_token: str) -> list[dict]:
+    resp = http_get(f"{API_BASE}/sites/{site_id}/categories", access_token)
     return resp.json()
 
 
-def resolve_category_ids(site_id: str, names: list[str]) -> dict[str, str]:
+def resolve_category_ids(site_id: str, access_token: str, names: list[str]) -> dict[str, str]:
     """Devuelve {nombre_configurado: category_id}. Lanza si algún nombre no matchea."""
-    categories = fetch_categories(site_id)
+    categories = fetch_categories(site_id, access_token)
     by_norm_name = {_normalize(c["name"]): c["id"] for c in categories}
 
     resolved = {}

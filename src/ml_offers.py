@@ -36,21 +36,22 @@ class Offer:
         return self.discount_pct + min(self.sold_quantity, 5000) / 100.0
 
 
-def _search_category(site_id: str, category_id: str, limit: int) -> list[dict]:
+def _search_category(site_id: str, access_token: str, category_id: str, limit: int) -> list[dict]:
     params = {"category": category_id, "limit": min(limit, 50)}
-    resp = http_get(f"{API_BASE}/sites/{site_id}/search", params=params)
+    resp = http_get(f"{API_BASE}/sites/{site_id}/search", access_token, params=params)
     return resp.json().get("results", [])
 
 
 def get_top_offers_for_category(
     site_id: str,
+    access_token: str,
     category_name: str,
     category_id: str,
     items_to_scan: int,
     min_discount_pct: float,
     top_n: int,
 ) -> list[Offer]:
-    raw_items = _search_category(site_id, category_id, items_to_scan)
+    raw_items = _search_category(site_id, access_token, category_id, items_to_scan)
 
     offers = []
     for item in raw_items:
