@@ -63,7 +63,7 @@ ofertas — ya no acepta llamadas anónimas a su buscador.
 3. Al crearla, copia el **Client ID** y el **Client Secret**.
 4. Corre el script de autorización (con el entorno virtual activo):
    ```bash
-   python scripts/ml_oauth_setup.py
+   python -m scripts.ml_oauth_setup
    ```
 5. Te pide el Client ID/Secret, te da una URL para abrir en el navegador,
    inicias sesión y aceptas los permisos. Mercado Libre te redirige a algo
