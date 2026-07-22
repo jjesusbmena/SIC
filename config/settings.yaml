@@ -6,10 +6,10 @@ mercado_libre:
   # El sistema resuelve el category_id real en tiempo de ejecución (no se hardcodean IDs).
   categories:
     - Electrónica, Audio y Video
-    - Celulares y Teléfonos
+    - Celulares y Telefonía
     - Hogar, Muebles y Jardín
     - Deportes y Fitness
-    - Ropa, Zapatos y Accesorios
+    - Ropa, Bolsas y Calzado
     - Computación
   items_per_category: 30      # cuántos items trae la búsqueda por categoría antes de filtrar
   min_discount_pct: 20        # % mínimo de descuento (price vs original_price) para considerarse "oferta"
