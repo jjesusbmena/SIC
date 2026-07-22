@@ -13,7 +13,7 @@ autorización de usuario); en su lugar aproxima "tendencia" combinando
 from dataclasses import dataclass
 from typing import Optional
 
-import requests
+from src.http_client import get as http_get
 
 API_BASE = "https://api.mercadolibre.com"
 
@@ -38,8 +38,7 @@ class Offer:
 
 def _search_category(site_id: str, category_id: str, limit: int) -> list[dict]:
     params = {"category": category_id, "limit": min(limit, 50)}
-    resp = requests.get(f"{API_BASE}/sites/{site_id}/search", params=params, timeout=15)
-    resp.raise_for_status()
+    resp = http_get(f"{API_BASE}/sites/{site_id}/search", params=params)
     return resp.json().get("results", [])
 
 

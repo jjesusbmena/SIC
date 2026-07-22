@@ -7,7 +7,7 @@ de forma estable; se resuelven por nombre en cada corrida.
 """
 import unicodedata
 
-import requests
+from src.http_client import get as http_get
 
 API_BASE = "https://api.mercadolibre.com"
 
@@ -21,8 +21,7 @@ def _normalize(text: str) -> str:
 
 
 def fetch_categories(site_id: str) -> list[dict]:
-    resp = requests.get(f"{API_BASE}/sites/{site_id}/categories", timeout=15)
-    resp.raise_for_status()
+    resp = http_get(f"{API_BASE}/sites/{site_id}/categories")
     return resp.json()
 
 
