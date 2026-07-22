@@ -33,6 +33,11 @@ def refresh_access_token(client_id: str, client_secret: str, refresh_token: str)
             f"No se pudo refrescar el access_token ({resp.status_code}): {resp.text[:500]}"
         )
     data = resp.json()
+    if "refresh_token" not in data:
+        raise MLAuthError(
+            "La respuesta no incluyó refresh_token. Revisa que el flujo 'Refresh Token' "
+            f"esté habilitado en tu app de Mercado Libre. Respuesta completa: {data}"
+        )
     return {
         "access_token": data["access_token"],
         "refresh_token": data["refresh_token"],
@@ -59,6 +64,11 @@ def exchange_code_for_token(client_id: str, client_secret: str, code: str, redir
             f"No se pudo intercambiar el code por un token ({resp.status_code}): {resp.text[:500]}"
         )
     data = resp.json()
+    if "refresh_token" not in data:
+        raise MLAuthError(
+            "La respuesta no incluyó refresh_token. Revisa que el flujo 'Refresh Token' "
+            f"esté habilitado en tu app de Mercado Libre. Respuesta completa: {data}"
+        )
     return {
         "access_token": data["access_token"],
         "refresh_token": data["refresh_token"],
