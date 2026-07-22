@@ -34,6 +34,8 @@ def main():
     auth_url = (
         f"{AUTH_BASE}?response_type=code&client_id={urllib.parse.quote(client_id)}"
         f"&redirect_uri={urllib.parse.quote(redirect_uri, safe='')}"
+        # offline_access es obligatorio para que la respuesta incluya refresh_token
+        f"&scope={urllib.parse.quote('offline_access read write')}"
     )
 
     print(f"\n1. Abre esta URL en tu navegador (logueado con tu cuenta de Mercado Libre):\n\n{auth_url}\n")
