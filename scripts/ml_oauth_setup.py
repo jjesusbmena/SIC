@@ -15,6 +15,7 @@ import sys
 import urllib.parse
 
 from src.ml_auth import MLAuthError, exchange_code_for_token
+from src.ml_categories import fetch_categories
 
 AUTH_BASE = "https://auth.mercadolibre.com.mx/authorization"
 # No necesita ser un servidor real: httpbin.org/get simplemente muestra en
@@ -52,6 +53,13 @@ def main():
     except MLAuthError as e:
         print(f"\nERROR: {e}")
         return 1
+
+    print("\n=== Probando el access_token contra /sites/MLM/categories desde esta máquina ===")
+    try:
+        categories = fetch_categories("MLM", tokens["access_token"])
+        print(f"OK: la API respondió {len(categories)} categorías. El token funciona desde aquí.")
+    except Exception as e:
+        print(f"FALLÓ la prueba: {e}")
 
     print("\n=== Listo. Guarda estos 3 valores como GitHub Secrets ===")
     print(f"ML_CLIENT_ID={client_id}")
