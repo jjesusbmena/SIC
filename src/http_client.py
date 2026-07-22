@@ -18,5 +18,11 @@ DEFAULT_HEADERS = {
 
 def get(url: str, params: dict | None = None, timeout: int = 15) -> requests.Response:
     resp = requests.get(url, params=params, headers=DEFAULT_HEADERS, timeout=timeout)
+    if not resp.ok:
+        print(f"--- Respuesta de error de {url} ---")
+        print(f"Status: {resp.status_code}")
+        print(f"Headers: {dict(resp.headers)}")
+        print(f"Body (primeros 2000 chars): {resp.text[:2000]}")
+        print("--- fin respuesta de error ---")
     resp.raise_for_status()
     return resp
