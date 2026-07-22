@@ -1,5 +1,5 @@
 """
-Orquestador: categorías configuradas -> ofertas reales de Mercado Libre ->
+Orquestador: ofertas reales de mercadolibre.com.mx/ofertas (scraping) ->
 link de afiliado -> publicación en Telegram.
 
 Uso:
@@ -14,9 +14,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from src.config import Env, ROOT_DIR, load_settings
-from src.ml_auth import MLAuthError, refresh_access_token
-from src.ml_categories import resolve_category_ids
-from src.ml_offers import get_top_offers_for_category
+from src.ml_scraper import scrape_top_offers
 
 
 def _load_posted_items(path: Path) -> dict:
@@ -40,65 +38,12 @@ def _prune_old(posted: dict, window_days: int) -> dict:
     }
 
 
-def get_ml_access_token() -> str:
-    """Refresca el access_token de ML y rota el refresh_token (de un solo uso)."""
-    try:
-        tokens = refresh_access_token(
-            Env.ML_CLIENT_ID, Env.ML_CLIENT_SECRET, Env.ML_REFRESH_TOKEN
-        )
-    except MLAuthError as e:
-        raise RuntimeError(
-            f"No se pudo obtener un access_token de Mercado Libre: {e}\n"
-            "Si el error menciona un refresh_token inválido/usado, corre de nuevo "
-            "scripts/ml_oauth_setup.py para generar uno nuevo."
-        ) from e
-
-    new_refresh_token = tokens["refresh_token"]
-    if new_refresh_token != Env.ML_REFRESH_TOKEN:
-        if Env.GH_PAT_SECRETS and Env.GITHUB_REPOSITORY:
-            from src.github_secrets import GitHubSecretsError, update_repo_secret
-
-            owner, repo = Env.GITHUB_REPOSITORY.split("/", 1)
-            try:
-                update_repo_secret(
-                    Env.GH_PAT_SECRETS, owner, repo, "ML_REFRESH_TOKEN", new_refresh_token
-                )
-                print("ML_REFRESH_TOKEN rotado y actualizado en GitHub Secrets.")
-            except GitHubSecretsError as e:
-                print(
-                    f"AVISO: no se pudo rotar ML_REFRESH_TOKEN en GitHub Secrets ({e}). "
-                    "La próxima corrida puede fallar por refresh_token inválido."
-                )
-        else:
-            print(
-                "AVISO: el refresh_token cambió pero no hay GH_PAT_SECRETS/GITHUB_REPOSITORY "
-                f"configurados para rotarlo solo. Actualiza manualmente tu .env con:\n"
-                f"ML_REFRESH_TOKEN={new_refresh_token}"
-            )
-
-    return tokens["access_token"]
-
-
-def collect_offers(settings: dict, access_token: str):
+def collect_offers(settings: dict):
     ml_cfg = settings["mercado_libre"]
-    site_id = ml_cfg["site_id"]
-    category_ids = resolve_category_ids(site_id, access_token, ml_cfg["categories"])
-
-    all_offers = []
-    for name, category_id in category_ids.items():
-        offers = get_top_offers_for_category(
-            site_id=site_id,
-            access_token=access_token,
-            category_name=name,
-            category_id=category_id,
-            items_to_scan=ml_cfg["items_per_category"],
-            min_discount_pct=ml_cfg["min_discount_pct"],
-            top_n=ml_cfg["top_per_category"],
-        )
-        all_offers.extend(offers)
-
-    all_offers.sort(key=lambda o: o.score, reverse=True)
-    return all_offers[: ml_cfg["top_total"]]
+    return scrape_top_offers(
+        min_discount_pct=ml_cfg["min_discount_pct"],
+        top_n=ml_cfg["top_total"],
+    )
 
 
 def main():
@@ -110,13 +55,11 @@ def main():
     if not args.dry_run:
         Env.validate_for_publishing()
 
-    access_token = get_ml_access_token()
-
     posted_path = ROOT_DIR / settings["publishing"]["posted_items_file"]
     posted = _prune_old(_load_posted_items(posted_path), settings["publishing"]["dedupe_window_days"])
 
-    print("Buscando ofertas por categoría...")
-    offers = collect_offers(settings, access_token)
+    print("Buscando ofertas en mercadolibre.com.mx/ofertas...")
+    offers = collect_offers(settings)
     new_offers = [o for o in offers if o.item_id not in posted]
 
     if not new_offers:

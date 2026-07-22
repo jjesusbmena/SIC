@@ -5,13 +5,17 @@ México, genera tu link de afiliado y publica en tu canal/grupo de Telegram.
 
 ## Cómo funciona
 
-1. **Ofertas** (`src/ml_offers.py`): consulta el buscador de Mercado Libre
-   (`GET /sites/MLM/search`) por categoría y se queda con los items que
-   tienen `original_price > price` (descuento real, no inventado) por encima
-   del umbral configurado. El "ranking de tendencia" combina el % de
-   descuento con `sold_quantity`, ambos datos reales que devuelve la API.
-   Mercado Libre exige un `access_token` OAuth real para llamar a este
-   endpoint (ya no acepta llamadas anónimas), por eso el paso de OAuth abajo.
+1. **Ofertas** (`src/ml_scraper.py`): lee con Playwright la página pública
+   `mercadolibre.com.mx/ofertas` (como lo haría un navegador normal) y se
+   queda con los items que tienen `original_price > price` (descuento real,
+   no inventado) por encima del umbral configurado, rankeados por % de
+   descuento.
+   *(Antes se intentó vía la API oficial de búsqueda, pero desde abril de
+   2025 Mercado Libre bloqueó `/sites/{site}/search` para terceros — incluso
+   con un token OAuth válido solo se pueden ver los productos de la cuenta
+   que autorizó la app, no el catálogo general. Por eso el cambio a scraping.
+   El código de OAuth sigue en el repo, sin usarse, por si sirve para algo
+   más adelante — ver `src/ml_auth.py`, `scripts/ml_oauth_setup.py`.)*
 2. **Link de afiliado** (`src/affiliate.py`): usa Playwright para pegar la
    URL del producto en el generador de links del portal de Afiliados,
    reutilizando una sesión ya iniciada (ver setup abajo).
@@ -47,13 +51,23 @@ cp .env.example .env
 ```
 
 Llena `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` (ver paso 2). El resto
-(`ML_CLIENT_ID`, `ML_CLIENT_SECRET`, `ML_REFRESH_TOKEN`) se llenan en el
-siguiente paso.
+(`ML_CLIENT_ID`, `ML_CLIENT_SECRET`, `ML_REFRESH_TOKEN`) es **opcional y sin
+uso actualmente** (ver paso 4) — puedes dejarlo vacío y saltar al paso 5.
 
-### 4. Crear tu aplicación de Mercado Libre y autorizarla (OAuth)
+### 4. (Opcional, sin uso actual) OAuth de Mercado Libre
 
-Mercado Libre exige un token real (`Authorization: Bearer`) para consultar
-ofertas — ya no acepta llamadas anónimas a su buscador.
+Este paso ya no es necesario para que el proyecto funcione — el
+descubrimiento de ofertas ahora es por scraping (paso 1 de "Cómo funciona").
+Se dejó documentado por si en el futuro se necesita este token para otra
+cosa (por ejemplo, si Mercado Libre vuelve a habilitar búsquedas de catálogo
+para terceros). Puedes ignorar esta sección por completo.
+
+<details>
+<summary>Ver de todos modos (OAuth, actualmente sin uso)</summary>
+
+Mercado Libre exige un token real (`Authorization: Bearer`) para varios
+endpoints de su API — aunque, como se explicó arriba, esto ya no alcanza
+para consultar el catálogo general de otros vendedores.
 
 1. Ve a **https://developers.mercadolibre.com.mx/apps** (logueado con tu
    cuenta de Mercado Libre) y crea una aplicación nueva.
@@ -69,14 +83,15 @@ ofertas — ya no acepta llamadas anónimas a su buscador.
    inicias sesión y aceptas los permisos. Mercado Libre te redirige a algo
    como `https://www.google.com.mx/?code=TG-XXXXXXXX...` — copia solo el
    valor de `code` (lo que sigue a `code=`) y pégalo cuando el script lo pida.
-6. El script imprime `ML_CLIENT_ID`, `ML_CLIENT_SECRET` y `ML_REFRESH_TOKEN` —
-   pégalos en tu archivo `.env`.
+6. El script guarda `ML_CLIENT_ID`, `ML_CLIENT_SECRET` y `ML_REFRESH_TOKEN`
+   directo en tu `.env` (no los imprime en pantalla, solo una versión
+   enmascarada) — cópialos de ahí a GitHub Secrets si los vas a usar en Actions.
 
 **Importante**: el `refresh_token` de Mercado Libre es de un solo uso. Cada
-vez que `src/main.py` lo usa para pedir un `access_token` nuevo, Mercado
-Libre le entrega un `refresh_token` distinto y el anterior queda inválido.
-Corriendo localmente, si ves un aviso de "el refresh_token cambió", copia el
-valor nuevo a tu `.env`. En GitHub Actions esto se resuelve solo (ver abajo).
+vez que algo lo usa para pedir un `access_token` nuevo, Mercado Libre entrega
+un `refresh_token` distinto y el anterior queda inválido.
+
+</details>
 
 ### 5. Iniciar sesión una vez en el portal de Afiliados
 
@@ -90,10 +105,12 @@ terminal cuando ya estés dentro de la Central de Afiliados. Esto guarda
 `storage_state.json` con tu sesión para que el resto de la automatización no
 te vuelva a pedir login. Repite este paso si la sesión expira.
 
-### 6. Ajustar categorías/umbral (opcional)
+### 6. Ajustar umbral (opcional)
 
-Edita `config/settings.yaml`: categorías a rastrear, % mínimo de descuento,
-cuántas ofertas por categoría y el total a publicar por corrida.
+Edita `config/settings.yaml`: `min_discount_pct` (% mínimo de descuento) y
+`top_total` (tope de ofertas a publicar por corrida). Las claves de
+`categories`/`items_per_category`/`top_per_category` quedan sin uso mientras
+el descubrimiento sea por scraping.
 
 ## Ejecutar
 
@@ -107,6 +124,23 @@ python -m src.main
 
 Cada item publicado se registra en `posted_items.json` para no repetirse
 dentro de la ventana configurada (`dedupe_window_days`, por defecto 7 días).
+
+## Aviso sobre el scraping de ofertas
+
+`src/ml_scraper.py` lee el HTML de `mercadolibre.com.mx/ofertas` con
+Playwright porque la API de búsqueda ya no está disponible para terceros
+(ver arriba). Esto es más frágil que una API oficial:
+
+- Si Mercado Libre cambia el diseño de esa página, los localizadores dejan
+  de encontrar las tarjetas de oferta y el script falla con un mensaje claro
+  pidiendo revisión.
+- Mercado Libre podría, en teoría, detectar y bloquear tráfico de scraping
+  agresivo. La frecuencia de este proyecto (cada 6 horas) es baja, pero no
+  hay garantía de que se mantenga sin bloqueos indefinidamente.
+
+Si falla, corre `python -m src.ml_scraper --debug` para abrir el navegador
+visible e inspeccionar la página real, y ajusta `CARD_SELECTORS` en ese
+archivo.
 
 ## Aviso sobre el generador de links de afiliado
 
@@ -133,15 +167,15 @@ la pestaña **Actions** del repo (botón "Run workflow").
 En el repo de GitHub: **Settings → Secrets and variables → Actions → New
 repository secret**.
 
-| Secret | Valor |
-|---|---|
-| `TELEGRAM_BOT_TOKEN` | El token que te dio @BotFather |
-| `TELEGRAM_CHAT_ID` | El chat_id o `@nombre_del_canal` |
-| `ML_STORAGE_STATE_B64` | Tu `storage_state.json` codificado en base64 (ver abajo) |
-| `ML_CLIENT_ID` | El Client ID de tu app de Mercado Libre |
-| `ML_CLIENT_SECRET` | El Client Secret de tu app de Mercado Libre |
-| `ML_REFRESH_TOKEN` | El refresh_token que te dio `scripts/ml_oauth_setup.py` |
-| `GH_PAT_SECRETS` | Personal Access Token de GitHub (ver abajo) |
+| Secret | Requerido | Valor |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | Sí | El token que te dio @BotFather |
+| `TELEGRAM_CHAT_ID` | Sí | El chat_id o `@nombre_del_canal` |
+| `ML_STORAGE_STATE_B64` | Sí | Tu `storage_state.json` codificado en base64 (ver abajo) |
+| `ML_CLIENT_ID` | No (sin uso actual) | Client ID de tu app de Mercado Libre |
+| `ML_CLIENT_SECRET` | No (sin uso actual) | Client Secret de tu app de Mercado Libre |
+| `ML_REFRESH_TOKEN` | No (sin uso actual) | refresh_token de `scripts/ml_oauth_setup.py` |
+| `GH_PAT_SECRETS` | No (sin uso actual) | Personal Access Token de GitHub (ver abajo) |
 
 Para generar `ML_STORAGE_STATE_B64`, después de correr
 `python scripts/login_afiliados.py` localmente:

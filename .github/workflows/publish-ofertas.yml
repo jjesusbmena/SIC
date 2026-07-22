@@ -35,6 +35,7 @@ jobs:
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
           ML_SITE_ID=MLM
+          # OAuth de ML sin uso actualmente (ver src/config.py) - opcionales, no rompe si están vacíos
           ML_CLIENT_ID=${{ secrets.ML_CLIENT_ID }}
           ML_CLIENT_SECRET=${{ secrets.ML_CLIENT_SECRET }}
           ML_REFRESH_TOKEN=${{ secrets.ML_REFRESH_TOKEN }}

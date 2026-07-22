@@ -2,8 +2,12 @@
 
 mercado_libre:
   site_id: MLM  # México
-  # Nombres de categorías tal como aparecen en /sites/MLM/categories.
-  # El sistema resuelve el category_id real en tiempo de ejecución (no se hardcodean IDs).
+  min_discount_pct: 20        # % mínimo de descuento (price vs original_price) para considerarse "oferta"
+  top_total: 8                # tope total de ofertas a publicar por corrida
+
+  # Sin uso actualmente: el descubrimiento de ofertas ahora es por scraping de
+  # mercadolibre.com.mx/ofertas (src/ml_scraper.py), que no filtra por categoría.
+  # Se dejan estos valores por si en algún momento se retoma la búsqueda vía API.
   categories:
     - Electrónica, Audio y Video
     - Celulares y Telefonía
@@ -11,10 +15,8 @@ mercado_libre:
     - Deportes y Fitness
     - Ropa, Bolsas y Calzado
     - Computación
-  items_per_category: 30      # cuántos items trae la búsqueda por categoría antes de filtrar
-  min_discount_pct: 20        # % mínimo de descuento (price vs original_price) para considerarse "oferta"
-  top_per_category: 3         # cuántas ofertas top se seleccionan por categoría
-  top_total: 8                # tope total de ofertas a publicar por corrida
+  items_per_category: 30
+  top_per_category: 3
 
 telegram:
   parse_mode: HTML
