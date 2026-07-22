@@ -96,16 +96,49 @@ python -m src.affiliate --debug "https://articulo.mercadolibre.com.mx/..."
 corre con el navegador visible para que puedas inspeccionar la página real y
 ajustar los localizadores en `src/affiliate.py`.
 
-## Automatizar la ejecución periódica
+## Automatizar la ejecución periódica con GitHub Actions
 
-Este repo no incluye todavía un cron/GitHub Action configurado (se acordó
-correrlo manualmente por ahora). La forma más simple en tu propia máquina es
-un cron job:
+El workflow `.github/workflows/publish-ofertas.yml` corre cada 6 horas
+(`cron: "0 */6 * * *"`, hora UTC) y también se puede lanzar manualmente desde
+la pestaña **Actions** del repo (botón "Run workflow").
 
+### Secrets que debes configurar
+
+En el repo de GitHub: **Settings → Secrets and variables → Actions → New
+repository secret**.
+
+| Secret | Valor |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | El token que te dio @BotFather |
+| `TELEGRAM_CHAT_ID` | El chat_id o `@nombre_del_canal` |
+| `ML_STORAGE_STATE_B64` | Tu `storage_state.json` codificado en base64 (ver abajo) |
+
+Para generar `ML_STORAGE_STATE_B64`, después de correr
+`python scripts/login_afiliados.py` localmente:
+
+```bash
+base64 -w0 storage_state.json   # Linux
+base64 -i storage_state.json    # macOS
 ```
-0 */6 * * * cd /ruta/al/repo && .venv/bin/python -m src.main >> run.log 2>&1
-```
 
-Si más adelante quieres moverlo a GitHub Actions, avísame y lo armamos —
-implica guardar `storage_state.json` como secret y refrescarlo periódicamente
-porque las sesiones expiran.
+Copia el resultado completo como valor del secret.
+
+### Por qué esto necesita mantenimiento manual periódico
+
+La sesión guardada en `storage_state.json` **expira** (Mercado Libre la
+invalida por tiempo, cambio de contraseña, o actividad sospechosa). Cuando
+eso pase, el workflow empezará a fallar en el paso "Publicar ofertas" con un
+error de `AffiliateLinkError`. Para solucionarlo:
+
+1. Corre `python scripts/login_afiliados.py` de nuevo en tu máquina.
+2. Regenera el base64 y actualiza el secret `ML_STORAGE_STATE_B64` en GitHub.
+
+No hay forma de evitar este paso manual sin automatizar el login completo
+(usuario/contraseña/2FA), lo cual no es recomendable ni estable porque
+Mercado Libre puede bloquear logins automatizados detectados como bot.
+
+### Control de duplicados en CI
+
+Cada corrida commitea de vuelta `posted_items.json` al branch (con el
+`GITHUB_TOKEN` por defecto, sin secrets extra) para que la siguiente corrida
+sepa qué ofertas ya se publicaron.

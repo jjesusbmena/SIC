@@ -3,5 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 storage_state.json
-posted_items.json
 *.log
+
+# posted_items.json SÍ se versiona: GitHub Actions lo commitea de vuelta
+# para mantener el control de duplicados entre corridas programadas.
+

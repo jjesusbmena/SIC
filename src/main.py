@@ -13,11 +13,9 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from src.affiliate import AffiliateLinkError, generate_affiliate_link
 from src.config import Env, ROOT_DIR, load_settings
 from src.ml_categories import resolve_category_ids
 from src.ml_offers import get_top_offers_for_category
-from src.telegram_bot import send_offer
 
 
 def _load_posted_items(path: Path) -> dict:
@@ -88,6 +86,9 @@ def main():
         if args.dry_run:
             print(f"  producto: {offer.permalink}")
             continue
+
+        from src.affiliate import AffiliateLinkError, generate_affiliate_link
+        from src.telegram_bot import send_offer
 
         try:
             affiliate_link = generate_affiliate_link(offer.permalink)
