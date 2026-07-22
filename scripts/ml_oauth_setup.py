@@ -17,9 +17,10 @@ import urllib.parse
 from src.ml_auth import MLAuthError, exchange_code_for_token
 
 AUTH_BASE = "https://auth.mercadolibre.com.mx/authorization"
-# No necesita ser un servidor real: solo vamos a leer el "code" de la URL
-# resultante en la barra de direcciones del navegador.
-DEFAULT_REDIRECT_URI = "https://www.google.com.mx"
+# No necesita ser un servidor real: httpbin.org/get simplemente muestra en
+# pantalla los parámetros que recibió (a diferencia de google.com, que
+# redirige y descarta el "code" antes de que lo puedas copiar).
+DEFAULT_REDIRECT_URI = "https://httpbin.org/get"
 
 
 def main():
@@ -38,8 +39,8 @@ def main():
     print(f"\n1. Abre esta URL en tu navegador (logueado con tu cuenta de Mercado Libre):\n\n{auth_url}\n")
     print("2. Acepta los permisos.")
     print(
-        f"3. Te va a redirigir a algo como {redirect_uri}/?code=TG-XXXXXXXX...\n"
-        "   Copia SOLO el valor después de 'code=' (y antes de cualquier '&' si hay más parámetros).\n"
+        f"3. Te va a redirigir a {redirect_uri} mostrando un JSON en pantalla.\n"
+        "   Busca dentro de ese JSON la clave \"args\" -> \"code\" y copia SOLO ese valor.\n"
     )
 
     code = input("Pega aquí el code: ").strip()
